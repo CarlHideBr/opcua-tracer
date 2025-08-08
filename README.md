@@ -5,7 +5,7 @@ Electron app to browse OPC UA servers and trend live variables in real time. Bui
 ## TLDR;
 - Download zip
 - Open repo with powershell
-- Execute: npm run deply
+- Execute: npm run deploy
 - Run .exe in release folder
 
 ## Features
@@ -97,4 +97,5 @@ Notes
 
 ## License
 MIT
+
 

@@ -6,7 +6,7 @@ import { Plus, Settings, X, Pause, Play, ZoomIn, ZoomOut, Download, ChevronLeft,
 
 const palette = ['#60a5fa','#f472b6','#34d399','#fbbf24','#a78bfa','#f87171','#22d3ee','#e5e7eb'];
 
-const LegendInline: React.FC<{ chartId: string; series: { nodeId: string; label: string; visible?: boolean; color?: string }[]; onToggle: (nid: string) => void }>
+const LegendInline: React.FC<{ chartId: string; series: { nodeId: string; label: string; visible?: boolean; color?: string; dataType?: string }[]; onToggle: (nid: string) => void }>
   = ({ chartId, series, onToggle }) => (
   <div className="legend">
     {series.map((s, i) => (
@@ -20,7 +20,7 @@ const LegendInline: React.FC<{ chartId: string; series: { nodeId: string; label:
 );
 
 const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; yMax?: number | 'auto';
-  series: { nodeId: string; label: string; visible?: boolean; color?: string }[] }>
+  series: { nodeId: string; label: string; visible?: boolean; color?: string; dataType?: string }[] }>
 = ({ id, title, yMin, yMax, series }) => {
   const data = useAppStore(s => s.chartData);
   const chart = useAppStore(s => s.charts.find(c => c.id === id));
@@ -34,6 +34,7 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
   const setXUnit = useAppStore(s => s.actions.setXUnit);
   const setZoom = useAppStore(s => s.actions.setZoom);
   const panChart = useAppStore(s => s.actions.panChart);
+  const removeChart = useAppStore(s => s.actions.removeChart);
 
   const [showCfg, setShowCfg] = useState(false);
   const [{ isOver }, drop] = useDrop(() => ({
@@ -144,6 +145,7 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
             a.download = `${title.replace(/\s+/g,'_')}.csv`;
             a.click();
           }}><Download size={16} /></button>
+          <button className="icon-button icon-button--danger" title="Remove chart" onClick={() => removeChart(id)}><X size={16} /></button>
         </div>
       </div>
       {showCfg && (
@@ -201,10 +203,20 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
             <XAxis type="number" dataKey="t" domain={domain as any} tickFormatter={(t) => new Date(t).toLocaleTimeString()} stroke="#9ca3af" />
             <YAxis domain={[yMin ?? 'auto', yMax ?? 'auto']} stroke="#9ca3af" />
             <Tooltip labelFormatter={(t) => new Date(Number(t)).toLocaleTimeString()} contentStyle={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(2px)', border: '1px solid rgba(156,163,175,0.4)', color: '#e5e7eb' }} />
-            {series.filter(s => s.visible !== false).map((s, i) => (
-              <Line key={s.nodeId} type="monotone" dot={false} isAnimationActive={false} dataKey={s.nodeId} name={s.label}
-                    stroke={s.color || palette[i % palette.length]} />
-            ))}
+            {series.filter(s => s.visible !== false).map((s, i) => {
+              const lineType = s.dataType === 'Boolean' ? 'stepAfter' : 'linear';
+              return (
+                <Line
+                  key={s.nodeId}
+                  type={lineType as any}
+                  dot={false}
+                  isAnimationActive={false}
+                  dataKey={s.nodeId}
+                  name={s.label}
+                  stroke={s.color || palette[i % palette.length]}
+                />
+              );
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -226,9 +238,6 @@ export const Charts: React.FC = () => {
       {charts.map((chart) => (
         <div key={chart.id}>
           <ChartCard id={chart.id} title={chart.title} yMin={chart.yMin} yMax={chart.yMax} series={chart.series} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -6, marginBottom: 10 }}>
-            <button className="icon-button icon-button--calm" title="Remove chart" onClick={() => removeChart(chart.id)}><X size={16} /></button>
-          </div>
         </div>
       ))}
     </div>

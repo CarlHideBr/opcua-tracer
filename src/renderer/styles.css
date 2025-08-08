@@ -4,6 +4,10 @@
   --text: #e5e7eb;
   --muted: #9ca3af;
   --accent: #3b82f6;
+  /* Softer danger palette for dark UI */
+  --danger: #b91c1c;        /* red-700 */
+  --danger-hover: #dc2626;  /* red-600 */
+  --danger-bg: rgba(185, 28, 28, 0.12);
 }
 
 html, body, #root {
@@ -199,6 +203,8 @@ html, body, .main {
 .icon-button--lg { padding: 6px; }
 .icon-button--primary { border-color: var(--accent); color: var(--accent); }
 .icon-button--calm { opacity: 0.9; }
+.icon-button--danger { border-color: var(--danger); color: var(--danger); }
+.icon-button--danger:hover { background: var(--danger-bg); border-color: var(--danger-hover); color: var(--danger-hover); }
 
 .legend {
   display: flex;

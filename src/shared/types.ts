@@ -34,6 +34,7 @@ export type ChartSeries = {
   label: string;
   color?: string;
   visible?: boolean;
+  dataType?: string; // e.g., 'Boolean', 'Double', etc., used for rendering style
 };
 
 export type ChartConfig = {

@@ -246,14 +246,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!chart) return;
       get().actions.addSeriesToChart(chart.id, node);
     },
-    addSeriesToChart(chartId: string, node: UaNode) {
+  addSeriesToChart(chartId: string, node: UaNode) {
       if (!node.isVariable) return;
   set((state: AppState) => {
         const chart = state.charts.find((c: ChartConfig) => c.id === chartId);
         if (!chart) return {} as any;
         if (chart.series.some((s: ChartSeries) => s.nodeId === node.nodeId)) return {} as any;
         if (chart.series.length >= 8) return {} as any;
-        const series: ChartSeries = { nodeId: node.nodeId, label: node.browseName, visible: true };
+    const series: ChartSeries = { nodeId: node.nodeId, label: node.browseName, visible: true, dataType: node.dataType };
         // Subscribe newly added series
         api.subscribe([{ nodeId: series.nodeId, label: series.label }], 100).catch(() => {});
         return { charts: state.charts.map((c: ChartConfig) => c.id === chart.id ? { ...c, series: [...c.series, series] } : c) };

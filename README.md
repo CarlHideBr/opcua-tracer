@@ -11,6 +11,8 @@ Electron app to browse OPC UA servers and trend live variables in real time. Bui
 
 Download
 - Go to the GitHub Releases page for this repo and download the portable zip (extract and run the EXE inside).
+- <img width="419" height="176" alt="image" src="https://github.com/user-attachments/assets/8213ad03-b983-454e-9078-687f58baca1f" />
+
 
 Notes
 - If you want a custom Windows icon, replace `assets/icon.ico` with a valid multi-size .ico (48x48, 64x64, 256x256). If packaging errors occur, you can still run the `release/win-unpacked/*.exe` directly.
@@ -104,5 +106,6 @@ Notes
 
 ## License
 MIT
+
 
 

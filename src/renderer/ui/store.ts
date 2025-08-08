@@ -86,7 +86,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       const allSeries = get().charts.flatMap((c: ChartConfig) => c.series.map((s: ChartSeries) => ({ nodeId: s.nodeId, label: s.label })));
       if (allSeries.length > 0) await api.subscribe(allSeries, 100); // 10 Hz
       // Heartbeat timer to ensure constant values still produce a line at 10 Hz
-      let hbTimer: any;
+  let hbTimer: any;
+  // Keep a longer history in memory so we can pan/zoom beyond the live window
+  const RETENTION_MINUTES = 360; // 6 hours at 10 Hz ~ 216k points
+  const RETENTION_POINTS = RETENTION_MINUTES * 60 * 10;
       const startHeartbeat = () => {
         clearInterval(hbTimer);
         hbTimer = setInterval(() => {
@@ -98,8 +101,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           const qt = Math.floor(t / 100) * 100; // quantize to 100ms buckets (10 Hz)
           if (last.t === qt) return; // already updated this bucket
           const copy: RealtimePoint = { ...last, t: qt };
-          const maxPoints = state.charts.reduce((acc, c) => Math.max(acc, c.xRangeMinutes), 15) * 60 * 10;
-          const next = [...state.chartData.slice(-maxPoints + 1), copy];
+          const next = [...state.chartData.slice(-RETENTION_POINTS + 1), copy];
           set({ chartData: next });
         }, 100);
       };
@@ -125,8 +127,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           (point as any)[d.nodeId] = v;
           next = [...next, point];
         }
-        const maxPoints = state.charts.reduce((acc, c) => Math.max(acc, c.xRangeMinutes), 15) * 60 * 10; // 10 Hz
-        next = next.slice(-maxPoints);
+  // Keep a fixed-size retention buffer (separate from visible window)
+  next = next.slice(-RETENTION_POINTS);
         set({ chartData: next });
       });
 

@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppStore } from './store';
 import { useDrop } from 'react-dnd';
-import { Plus, Settings, X, Pause, Play, ZoomIn, ZoomOut, Download } from 'lucide-react';
+import { Plus, Settings, X, Pause, Play, ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const palette = ['#60a5fa','#f472b6','#34d399','#fbbf24','#a78bfa','#f87171','#22d3ee','#e5e7eb'];
 
@@ -23,6 +23,7 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
   series: { nodeId: string; label: string; visible?: boolean; color?: string }[] }>
 = ({ id, title, yMin, yMax, series }) => {
   const data = useAppStore(s => s.chartData);
+  const chart = useAppStore(s => s.charts.find(c => c.id === id));
   const toggleSeries = useAppStore(s => s.actions.toggleSeries);
   const addSeriesToChart = useAppStore(s => s.actions.addSeriesToChart);
   const setChartConfig = useAppStore(s => s.actions.setChartConfig);
@@ -80,14 +81,48 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
     return { position: 'absolute', left, width, top: 0, bottom: 0, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.35)', pointerEvents: 'none' } as React.CSSProperties;
   }, [dragStart, dragEnd]);
 
+  // Compute x-axis domain and visible data based on live/paused/zoom
+  const { domain, visible } = useMemo(() => {
+    const now = Date.now();
+    const windowMin = (chart?.xRangeMinutes ?? 15) * 60 * 1000;
+    const right = chart?.paused ? (chart?.xRight ?? now) : now;
+    const baseFrom = right - windowMin;
+    const from = chart?.xZoom ? chart.xZoom[0] : baseFrom;
+    const to = chart?.xZoom ? chart.xZoom[1] : right;
+    const vis = data.filter(d => d.t >= from && d.t <= to);
+    return { domain: [from, to] as [number, number], visible: vis };
+  }, [chart?.paused, chart?.xRight, chart?.xRangeMinutes, chart?.xZoom, data]);
+
   return (
     <div ref={drop as any} className="card" style={{ outline: isOver ? '1px dashed rgba(59,130,246,0.6)' : 'none' }}>
       <div className="card-title">
-        <div style={{ fontWeight: 600 }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontWeight: 600 }}>{title}</div>
+          <span style={{
+            fontSize: 10,
+            padding: '2px 6px',
+            borderRadius: 8,
+            background: chart?.paused ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)',
+            color: chart?.paused ? '#eab308' : '#22c55e',
+            border: `1px solid ${chart?.paused ? 'rgba(234,179,8,0.35)' : 'rgba(34,197,94,0.35)'}`
+          }}>{chart?.paused ? 'PAUSED' : 'LIVE'}</span>
+        </div>
         <div className="card-actions">
           <button className="icon-button" title="Settings" onClick={() => setShowCfg(v => !v)}><Settings size={16} /></button>
           <button className="icon-button" title="Pause" onClick={() => pauseChart(id, true)}><Pause size={16} /></button>
           <button className="icon-button" title="Resume" onClick={() => pauseChart(id, false)}><Play size={16} /></button>
+          {chart?.paused && (
+            <>
+              <button className="icon-button" title="Pan left" onClick={() => {
+                const winMs = (chart?.xRangeMinutes ?? 15) * 60 * 1000;
+                panChart(id, -Math.round(winMs * 0.25));
+              }}><ChevronLeft size={16} /></button>
+              <button className="icon-button" title="Pan right" onClick={() => {
+                const winMs = (chart?.xRangeMinutes ?? 15) * 60 * 1000;
+                panChart(id, Math.round(winMs * 0.25));
+              }}><ChevronRight size={16} /></button>
+            </>
+          )}
           <button className="icon-button" title="Reset zoom" onClick={() => setZoom(id, undefined)}><ZoomOut size={16} /></button>
           <button className="icon-button" title="Export CSV" onClick={() => {
             const cols = ['t', ...series.map(s => s.nodeId)];
@@ -105,7 +140,7 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
       {showCfg && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginTop: 8 }}>
           <label style={{ fontSize: 12 }}>Window (min)
-            <input className="input" type="number" min={1} max={120} defaultValue={15} onChange={(e) => setXRangeMinutes(id, Number(e.target.value))} />
+            <input className="input" type="number" min={1} max={720} value={chart?.xRangeMinutes ?? 15} onChange={(e) => setXRangeMinutes(id, Number(e.target.value))} />
           </label>
           <label style={{ fontSize: 12 }}>Y min
             <input className="input" type="number" placeholder="auto" onChange={(e) => setYScale(id, e.target.value === '' ? 'auto' : Number(e.target.value), undefined)} />
@@ -122,9 +157,9 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
       <div style={{ height: 300, position: 'relative' }} ref={containerRef} onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
         <div style={overlayStyle} />
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+          <LineChart data={visible} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-            <XAxis dataKey="t" tickFormatter={(t) => new Date(t).toLocaleTimeString()} stroke="#9ca3af" />
+            <XAxis type="number" dataKey="t" domain={domain as any} tickFormatter={(t) => new Date(t).toLocaleTimeString()} stroke="#9ca3af" />
             <YAxis domain={[yMin ?? 'auto', yMax ?? 'auto']} stroke="#9ca3af" />
             <Tooltip labelFormatter={(t) => new Date(Number(t)).toLocaleTimeString()} />
             {series.filter(s => s.visible !== false).map((s, i) => (

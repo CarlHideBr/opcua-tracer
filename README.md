@@ -11,7 +11,8 @@ Electron app to browse OPC UA servers and trend live variables in real time. Bui
 
 Download
 - Go to the GitHub Releases page for this repo and download the portable zip (extract and run the EXE inside).
-- <img width="419" height="176" alt="image" src="https://github.com/user-attachments/assets/8213ad03-b983-454e-9078-687f58baca1f" />
+- <img width="1293" height="491" alt="image" src="https://github.com/user-attachments/assets/43a97387-9501-45ba-b1cb-1b9715b8723a" />
+
 
 
 Notes
@@ -106,6 +107,7 @@ Notes
 
 ## License
 MIT
+
 
 
 

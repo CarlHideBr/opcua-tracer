@@ -14,6 +14,9 @@ export class OpcUaService extends EventEmitter {
   private client: any | null = null;
   private subscription: any | null = null;
   private monitoredItems: Map<string, any> = new Map();
+  private historyTimers: Map<string, NodeJS.Timeout> = new Map();
+  private lastHistoryTimestamp: Map<string, Date> = new Map();
+  private lastEmittedMs: Map<string, number> = new Map();
   private simulatedTimer: NodeJS.Timeout | null = null;
   private simulatedPhase = 0;
 
@@ -90,6 +93,11 @@ export class OpcUaService extends EventEmitter {
       return;
     }
     try {
+  // stop history timers
+  for (const [, t] of this.historyTimers) { try { clearInterval(t); } catch {} }
+  this.historyTimers.clear();
+  this.lastHistoryTimestamp.clear();
+  this.lastEmittedMs.clear();
       for (const [, item] of this.monitoredItems) {
         try { await item.terminate(); } catch {}
       }
@@ -290,9 +298,15 @@ export class OpcUaService extends EventEmitter {
         TimestampsToReturn.Both
       );
       item.on('changed', (d: any) => {
-        this.emit('data', { nodeId: n.nodeId, value: d.value.value, timestamp: d.serverTimestamp || d.sourceTimestamp || new Date() } as SubscriptionData);
+        const ts = d.serverTimestamp || d.sourceTimestamp || new Date();
+        const tms = new Date(ts).getTime();
+        this.lastEmittedMs.set(n.nodeId, Math.max(this.lastEmittedMs.get(n.nodeId) || 0, tms));
+        this.emit('data', { nodeId: n.nodeId, value: d.value.value, timestamp: ts } as SubscriptionData);
       });
       this.monitoredItems.set(n.nodeId, item);
+
+      // Attempt to start historical backfill for this node if supported
+      this.maybeStartHistoryBackfill(n.nodeId, samplingIntervalMs).catch(() => {});
     }
   }
 
@@ -307,5 +321,108 @@ export class OpcUaService extends EventEmitter {
     // Try to write raw value; a real app should infer DataType per node first
     await this.session!.write({ nodeId: req.nodeId, attributeId: 13, value: { value: { dataType: DataType.Double, value: req.value } } });
     return { ok: true };
+  }
+
+  private stopHistory(nodeId: string) {
+    const t = this.historyTimers.get(nodeId);
+    if (t) {
+      try { clearInterval(t); } catch {}
+      this.historyTimers.delete(nodeId);
+    }
+  }
+
+  private async maybeStartHistoryBackfill(nodeId: string, samplingIntervalMs: number) {
+    if (!this.session) return;
+    if (SIMULATION) return;
+  // Ensure only one timer per node
+  this.stopHistory(nodeId);
+    try {
+      const { AttributeIds } = await import('node-opcua');
+      const dv = await (this.session as any).read({ nodeId, attributeId: AttributeIds.Historizing });
+      const historizing = dv?.value?.value === true;
+      if (!historizing) {
+        // No historization declared for this node
+        return;
+      }
+    } catch {
+      // If reading Historizing fails, we'll still try one history call below; if unsupported we'll stop.
+    }
+
+    // Seed the last history window to a small look-back to pick up recent data
+    if (!this.lastHistoryTimestamp.has(nodeId)) {
+      this.lastHistoryTimestamp.set(nodeId, new Date(Date.now() - Math.max(1000, samplingIntervalMs * 2)));
+    }
+
+    const poll = async () => {
+      if (!this.session) return;
+      const end = new Date();
+      const start = this.lastHistoryTimestamp.get(nodeId) || new Date(end.getTime() - samplingIntervalMs * 2);
+      if (end <= start) return;
+      try {
+        const sess: any = this.session as any;
+        const haveReadHistoryValue = typeof sess.readHistoryValue === 'function';
+        let maxT = this.lastEmittedMs.get(nodeId) || 0;
+        if (haveReadHistoryValue) {
+          const res = await sess.readHistoryValue([{ nodeId }], start, end);
+          const arr = Array.isArray(res) ? res : [res];
+          for (const r of arr) {
+            const dvs = r?.historyData?.dataValues || [];
+            for (const dv of dvs) {
+              const ts = new Date(dv.sourceTimestamp || dv.serverTimestamp || end);
+              const tms = ts.getTime();
+              if (tms > (this.lastEmittedMs.get(nodeId) || 0)) {
+                this.emit('data', { nodeId, value: dv.value?.value, timestamp: ts } as SubscriptionData);
+                if (tms > maxT) maxT = tms;
+              }
+            }
+          }
+        } else if (typeof sess.historyRead === 'function') {
+          const opcua: any = await import('node-opcua');
+          const details = new opcua.ReadRawModifiedDetails({
+            isReadModified: false,
+            startTime: start,
+            endTime: end,
+            numValuesPerNode: 0,
+            returnBounds: false
+          });
+          const nodesToRead = [{ nodeId }];
+          const r = await sess.historyRead(details, opcua.TimestampsToReturn.Source, false, nodesToRead);
+          const arr = Array.isArray(r) ? r : [r];
+          for (const rr of arr) {
+            const dvs = rr?.historyData?.dataValues || [];
+            for (const dv of dvs) {
+              const ts = new Date(dv.sourceTimestamp || dv.serverTimestamp || end);
+              const tms = ts.getTime();
+              if (tms > (this.lastEmittedMs.get(nodeId) || 0)) {
+                this.emit('data', { nodeId, value: dv.value?.value, timestamp: ts } as SubscriptionData);
+                if (tms > maxT) maxT = tms;
+              }
+            }
+          }
+        } else {
+          // No history API available
+          this.stopHistory(nodeId);
+          return;
+        }
+        if (maxT > 0) {
+          this.lastEmittedMs.set(nodeId, maxT);
+          this.lastHistoryTimestamp.set(nodeId, new Date(maxT));
+        } else {
+          // Advance the window slightly to avoid tight loops with empty data
+          this.lastHistoryTimestamp.set(nodeId, end);
+        }
+      } catch (err: any) {
+        // If server says unsupported, stop polling
+        const msg = String(err?.message || err);
+        if (/History|Unsupported|NotSupported/i.test(msg)) this.stopHistory(nodeId);
+      }
+    };
+
+    // Start a periodic poll (min 500ms to avoid hammering)
+    const interval = Math.max(500, samplingIntervalMs);
+    const timer = setInterval(() => { poll().catch(() => {}); }, interval);
+    this.historyTimers.set(nodeId, timer);
+    // Do an initial poll immediately
+    poll().catch(() => {});
   }
 }

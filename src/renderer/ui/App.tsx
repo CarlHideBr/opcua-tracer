@@ -20,7 +20,8 @@ export const App: React.FC = () => {
   const isResizingRef = useRef(false);
 
   const appStyle = useMemo(() => ({
-    ['--sidebar-size' as any]: `${collapsed ? 0 : sidebarWidth}px`,
+    // Keep a slim width when collapsed so the toggle remains visible inside the sidebar
+    ['--sidebar-size' as any]: collapsed ? '44px' : `${sidebarWidth}px`,
   }), [sidebarWidth, collapsed]);
 
   useEffect(() => {
@@ -55,14 +56,7 @@ export const App: React.FC = () => {
       <div className={("app" + (collapsed ? " app--collapsed" : ""))} style={appStyle}>
         <header className="header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Hamburger/X occupies the far-left position */}
-            {/* Only show header toggle when collapsed so the control feels part of the sidebar */}
-            {collapsed && (
-              <button className="icon-button" title="Open sidebar" onClick={() => setCollapsed(false)}>
-                <Menu size={16} />
-              </button>
-            )}
-            {/* Connection status dot next to the toggle */}
+            {/* Header no longer hosts the toggle; single control lives in sidebar */}
             <div
               style={{
                 width: 8,
@@ -87,13 +81,14 @@ export const App: React.FC = () => {
           </div>
         </header>
         <aside className="sidebar">
-          {/* In-sidebar toggle at the top-right */}
-          {!collapsed && (
-            <button className="icon-button sidebar-toggle" title="Hide sidebar" onClick={() => setCollapsed(true)}>
-              <X size={16} />
-            </button>
-          )}
-          <Sidebar />
+          {/* Single fixed-position toggle inside the sidebar */}
+          <button className="icon-button sidebar-toggle" title={collapsed ? 'Open sidebar' : 'Hide sidebar'} onClick={() => setCollapsed(v => !v)}>
+            {collapsed ? <Menu size={16} /> : <X size={16} />}
+          </button>
+          {/* Hide content (not the toggle) when collapsed to avoid overlap */}
+          <div className="sidebar-content">
+            <Sidebar />
+          </div>
           {!collapsed && (
             <div
               className="resizer"

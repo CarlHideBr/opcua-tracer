@@ -29,7 +29,7 @@ body {
 }
 
 /* When collapsed, shrink the left track smoothly via CSS var */
-.app--collapsed { --sidebar-size: 0px; }
+.app--collapsed { --sidebar-size: var(--sidebar-collapsed-size, 44px); }
 
 .header {
   grid-area: header;
@@ -45,17 +45,15 @@ body {
   grid-area: sidebar;
   border-right: 1px solid #1f2937;
   background: var(--panel);
-  padding: 10px 6px 10px 10px; /* leave room for resizer */
+  padding: 44px 6px 10px 10px; /* top padding reserves space for toggle */
   overflow: auto;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.25s ease;
   position: relative;
 }
 
-.app--collapsed .sidebar {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-8px);
-}
+/* Sidebar inner content fades when collapsing but the container remains to host the toggle */
+.sidebar-content { transition: opacity 0.2s ease; }
+.app--collapsed .sidebar-content { opacity: 0; pointer-events: none; }
 
 .main {
   grid-area: main;

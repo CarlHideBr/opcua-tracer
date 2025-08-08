@@ -119,11 +119,15 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
           {chart?.paused && (
             <>
               <button className="icon-button" title="Pan left" onClick={() => {
-                const winMs = (chart?.xRangeMinutes ?? 15) * 60 * 1000;
+                const winMs = (chart?.xUnit === 'seconds'
+                  ? (chart?.xRangeSeconds ?? 30) * 1000
+                  : (chart?.xRangeMinutes ?? 15) * 60 * 1000);
                 panChart(id, -Math.round(winMs * 0.25));
               }}><ChevronLeft size={16} /></button>
               <button className="icon-button" title="Pan right" onClick={() => {
-                const winMs = (chart?.xRangeMinutes ?? 15) * 60 * 1000;
+                const winMs = (chart?.xUnit === 'seconds'
+                  ? (chart?.xRangeSeconds ?? 30) * 1000
+                  : (chart?.xRangeMinutes ?? 15) * 60 * 1000);
                 panChart(id, Math.round(winMs * 0.25));
               }}><ChevronRight size={16} /></button>
             </>
@@ -143,30 +147,30 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
         </div>
       </div>
       {showCfg && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginTop: 8 }}>
-          <label style={{ fontSize: 12 }}>X unit
+        <div className="form-row">
+          <label className="form-field">X unit
             <select className="input" value={chart?.xUnit || 'minutes'} onChange={(e) => setXUnit(id, e.target.value as any)}>
               <option value="seconds">seconds</option>
               <option value="minutes">minutes</option>
             </select>
           </label>
           { (chart?.xUnit || 'minutes') === 'seconds' ? (
-            <label style={{ fontSize: 12 }}>Window (sec)
+            <label className="form-field">Window (sec)
               <input className="input" type="number" min={5} max={3600} value={chart?.xRangeSeconds ?? 30} onChange={(e) => setXRangeSeconds(id, Number(e.target.value))} />
             </label>
           ) : (
-            <label style={{ fontSize: 12 }}>Window (min)
+            <label className="form-field">Window (min)
               <input className="input" type="number" min={1} max={720} value={chart?.xRangeMinutes ?? 15} onChange={(e) => setXRangeMinutes(id, Number(e.target.value))} />
             </label>
           )}
-          <label style={{ fontSize: 12 }}>Y min
+          <label className="form-field">Y min
             <input className="input" type="number" placeholder="auto" onChange={(e) => setYScale(id, e.target.value === '' ? 'auto' : Number(e.target.value), undefined)} />
           </label>
-          <label style={{ fontSize: 12 }}>Y max
+          <label className="form-field">Y max
             <input className="input" type="number" placeholder="auto" onChange={(e) => setYScale(id, undefined, e.target.value === '' ? 'auto' : Number(e.target.value))} />
           </label>
-          <div style={{ alignSelf: 'end' }}>
-            <button className="icon-button" title="Zoom in" onClick={() => setZoom(id, undefined)}><ZoomIn size={16} /></button>
+          <div style={{ alignSelf: 'flex-end' }}>
+            <button className="icon-button" title="Reset zoom" onClick={() => setZoom(id, undefined)}><ZoomIn size={16} /></button>
           </div>
         </div>
       )}

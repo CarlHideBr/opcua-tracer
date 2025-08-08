@@ -19,21 +19,17 @@ body {
 
 .app {
   display: grid;
-  grid-template-columns: var(--sidebar-width, 360px) 1fr;
+  grid-template-columns: var(--sidebar-size, 360px) 1fr;
   grid-template-rows: 56px 1fr;
   grid-template-areas:
     "header header"
     "sidebar main";
   height: 100vh;
+  transition: grid-template-columns 0.25s ease;
 }
 
-.app--collapsed {
-  grid-template-columns: 0 1fr;
-}
-
-.app--collapsed .sidebar {
-  display: none;
-}
+/* When collapsed, shrink the left track smoothly via CSS var */
+.app--collapsed { --sidebar-size: 0px; }
 
 .header {
   grid-area: header;
@@ -51,8 +47,14 @@ body {
   background: var(--panel);
   padding: 10px 6px 10px 10px; /* leave room for resizer */
   overflow: auto;
-  transition: width 0.2s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease;
   position: relative;
+}
+
+.app--collapsed .sidebar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-8px);
 }
 
 .main {
@@ -72,6 +74,14 @@ body {
 }
 .resizer:hover {
   background: rgba(255,255,255,0.06);
+}
+
+/* Sidebar toggle button placed at the top-right inside the sidebar */
+.sidebar-toggle {
+  position: absolute;
+  top: 8px;
+  right: 10px; /* leave a little space from the resizer */
+  z-index: 2;
 }
 
 .button {
@@ -210,3 +220,23 @@ body {
 }
 
 /* Removed forced white line override to restore palette colors */
+
+/* Form layout helpers for aligned control rows */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end; /* align bottoms so inputs line up */
+  margin-top: 8px;
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+.form-field > input,
+.form-field > select {
+  /* keep inputs visually consistent without forcing a hard width */
+  min-width: 120px;
+}

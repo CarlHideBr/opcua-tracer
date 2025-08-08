@@ -4,7 +4,7 @@ import { Charts } from './Charts';
 import { useAppStore } from './store';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { PlugZap, PowerOff, Menu } from 'lucide-react';
+import { PlugZap, PowerOff, Menu, X } from 'lucide-react';
 
 export const App: React.FC = () => {
   const connected = useAppStore(s => s.connection.connected);
@@ -20,8 +20,8 @@ export const App: React.FC = () => {
   const isResizingRef = useRef(false);
 
   const appStyle = useMemo(() => ({
-    ['--sidebar-width' as any]: `${sidebarWidth}px`,
-  }), [sidebarWidth]);
+    ['--sidebar-size' as any]: `${collapsed ? 0 : sidebarWidth}px`,
+  }), [sidebarWidth, collapsed]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -55,9 +55,14 @@ export const App: React.FC = () => {
       <div className={("app" + (collapsed ? " app--collapsed" : ""))} style={appStyle}>
         <header className="header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button className="icon-button" title={collapsed ? 'Open sidebar' : 'Close sidebar'} onClick={() => setCollapsed(v => !v)}>
-              <Menu size={16} />
-            </button>
+            {/* Hamburger/X occupies the far-left position */}
+            {/* Only show header toggle when collapsed so the control feels part of the sidebar */}
+            {collapsed && (
+              <button className="icon-button" title="Open sidebar" onClick={() => setCollapsed(false)}>
+                <Menu size={16} />
+              </button>
+            )}
+            {/* Connection status dot next to the toggle */}
             <div
               style={{
                 width: 8,
@@ -82,6 +87,12 @@ export const App: React.FC = () => {
           </div>
         </header>
         <aside className="sidebar">
+          {/* In-sidebar toggle at the top-right */}
+          {!collapsed && (
+            <button className="icon-button sidebar-toggle" title="Hide sidebar" onClick={() => setCollapsed(true)}>
+              <X size={16} />
+            </button>
+          )}
           <Sidebar />
           {!collapsed && (
             <div

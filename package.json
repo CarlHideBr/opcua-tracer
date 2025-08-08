@@ -1,0 +1,76 @@
+{
+  "name": "opc-ua-tracer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron + React (Vite) OPC UA tracer with simulation mode",
+  "main": "dist/main/index.js",
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+  "dev": "cross-env VITE_MODE=dev ELECTRON_START_URL=http://localhost:5173 concurrently -k \"vite\" \"tsup src/preload/index.ts --format cjs --out-dir dist/preload --external electron --watch\" \"tsup src/main/index.ts --format esm --out-dir dist/main --external electron --watch\" \"wait-on tcp:5173 && electron .\"",
+  "dev:simulation": "cross-env SIMULATION=true VITE_MODE=dev ELECTRON_START_URL=http://localhost:5173 concurrently -k \"vite\" \"tsup src/preload/index.ts --format cjs --out-dir dist/preload --external electron --watch\" \"tsup src/main/index.ts --format esm --out-dir dist/main --external electron --watch\" \"wait-on tcp:5173 && electron .\"",
+    "build:ui": "vite build",
+  "build:main": "tsup src/main/index.ts --format esm --out-dir dist/main --external electron",
+  "build:preload": "tsup src/preload/index.ts --format cjs --out-dir dist/preload --external electron",
+    "build": "npm run build:ui && npm run build:preload && npm run build:main && electron-builder -w nsis",
+    "build:simulation": "cross-env SIMULATION=true npm run build",
+    "package": "electron-builder -w nsis",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "deploy": "cross-env SIMULATION=false npm run build"
+  },
+  "build": {
+    "appId": "com.example.opcuatracer",
+    "productName": "OPC UA Tracer",
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "assets/**",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "dist/main/index.js"
+    },
+    "asar": true,
+    "win": {
+      "target": ["nsis"],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "electron-store": "^9.0.0",
+    "node-opcua": "^2.119.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+  "lucide-react": "^0.452.0",
+    "recharts": "^2.10.3",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^30.0.8",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.0",
+    "tsup": "^8.1.0",
+    "typescript": "^5.4.5",
+    "vite": "^5.4.1",
+    "wait-on": "^7.2.0"
+  }
+}

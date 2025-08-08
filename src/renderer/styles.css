@@ -1,0 +1,212 @@
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --accent: #3b82f6;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width, 360px) 1fr;
+  grid-template-rows: 56px 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar main";
+  height: 100vh;
+}
+
+.app--collapsed {
+  grid-template-columns: 0 1fr;
+}
+
+.app--collapsed .sidebar {
+  display: none;
+}
+
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #0b1220;
+  border-bottom: 1px solid #1f2937;
+}
+
+.sidebar {
+  grid-area: sidebar;
+  border-right: 1px solid #1f2937;
+  background: var(--panel);
+  padding: 10px 6px 10px 10px; /* leave room for resizer */
+  overflow: auto;
+  transition: width 0.2s ease;
+  position: relative;
+}
+
+.main {
+  grid-area: main;
+  padding: 10px;
+  overflow: auto;
+}
+
+.resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+}
+.resizer:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.input, .select {
+  background: #0b1220;
+  color: var(--text);
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.card {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-actions { display: inline-flex; gap: 6px; }
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.list-item {
+  padding-left: 0;
+}
+
+.list-row {
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.list-row:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.icon-button {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 4px;
+  cursor: pointer;
+}
+.icon-button--lg { padding: 6px; }
+.icon-button--primary { border-color: var(--accent); color: var(--accent); }
+.icon-button--calm { opacity: 0.9; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 0;
+  cursor: pointer;
+}
+
+.legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.node-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+}
+
+.tree-toggle {
+  background: transparent;
+  border: 1px solid #1f2937;
+  color: var(--text);
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tree-children {
+  position: relative;
+}
+.tree-children::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #1f2937;
+  opacity: 0.6;
+}
+
+/* nested levels get additional guide lines */
+.tree-children .tree-children::before {
+  left: 22px;
+  opacity: 0.5;
+}
+.tree-children .tree-children .tree-children::before {
+  left: 30px;
+  opacity: 0.45;
+}
+.tree-children .tree-children .tree-children .tree-children::before {
+  left: 36px;
+  opacity: 0.4;
+}
+
+/* Removed forced white line override to restore palette colors */

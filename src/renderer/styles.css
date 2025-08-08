@@ -82,6 +82,59 @@ body {
   z-index: 2;
 }
 
+/* Sidebar scrollbar styling (Chromium/Electron) */
+.sidebar {
+  /* Reserve space so content doesn’t jump when scrollbar appears */
+  scrollbar-gutter: stable both-edges;
+}
+.sidebar::-webkit-scrollbar {
+  width: 10px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent; /* blend with panel */
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: #1f2937; /* slate-800 */
+  border-radius: 8px;
+  border: 2px solid transparent; /* creates inner padding for spacing */
+  background-clip: content-box;
+}
+.sidebar:hover::-webkit-scrollbar-thumb {
+  background-color: #374151; /* slate-700 on hover */
+}
+/* Firefox fallback */
+.sidebar {
+  scrollbar-color: #374151 transparent;
+  scrollbar-width: thin;
+}
+
+/* Global scrollbar theme for all scrollable areas */
+html, body, .main {
+  scrollbar-gutter: stable both-edges;
+}
+/* Chromium/Electron */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #1f2937; /* slate-800 */
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #374151; /* slate-700 */
+}
+/* Firefox global */
+* {
+  scrollbar-color: #374151 transparent;
+  scrollbar-width: thin;
+}
+
 .button {
   background: var(--accent);
   color: white;

@@ -69,13 +69,9 @@ export const App: React.FC = () => {
             <div>OPC UA Tracer</div>
           </div>
           <div>
-            {!connected ? (
+            {!connected && (
               <button className="icon-button icon-button--primary" title="Connect" onClick={() => connect()}>
                 <PlugZap size={16} />
-              </button>
-            ) : (
-              <button className="icon-button icon-button--calm" title="Disconnect" onClick={() => disconnect()}>
-                <PowerOff size={16} />
               </button>
             )}
           </div>

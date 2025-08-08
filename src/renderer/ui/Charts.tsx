@@ -164,10 +164,28 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
             </label>
           )}
           <label className="form-field">Y min
-            <input className="input" type="number" placeholder="auto" onChange={(e) => setYScale(id, e.target.value === '' ? 'auto' : Number(e.target.value), undefined)} />
+            <input
+              className="input"
+              type="number"
+              placeholder="auto"
+              value={chart?.yMin === undefined || chart?.yMin === 'auto' ? '' : (chart?.yMin as number)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setYScale(id, v === '' ? 'auto' : Number(v), undefined);
+              }}
+            />
           </label>
           <label className="form-field">Y max
-            <input className="input" type="number" placeholder="auto" onChange={(e) => setYScale(id, undefined, e.target.value === '' ? 'auto' : Number(e.target.value))} />
+            <input
+              className="input"
+              type="number"
+              placeholder="auto"
+              value={chart?.yMax === undefined || chart?.yMax === 'auto' ? '' : (chart?.yMax as number)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setYScale(id, undefined, v === '' ? 'auto' : Number(v));
+              }}
+            />
           </label>
           <div style={{ alignSelf: 'flex-end' }}>
             <button className="icon-button" title="Reset zoom" onClick={() => setZoom(id, undefined)}><ZoomIn size={16} /></button>

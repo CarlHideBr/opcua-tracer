@@ -113,24 +113,72 @@ export const useAppStore = create<AppState>((set, get) => ({
         // quantize timestamp to 100ms so multiple tags align and we get exactly 10 Hz buckets
         const tRaw = new Date(d.timestamp).getTime();
         const t = Math.floor(tRaw / 100) * 100;
-        const v = typeof d.value === 'boolean' ? (d.value ? 100 : 0) : d.value;
+        const v = typeof d.value === 'boolean' ? (d.value ? 1 : 0) : d.value;
         let next = state.chartData.slice();
+
+        // Fast path when appending in time order
         const last = next[next.length - 1];
-        if (last && last.t === t) {
+        if (!last) {
+          const point: RealtimePoint = { t } as any;
+          (point as any)[d.nodeId] = v;
+          next = [point];
+        } else if (last.t === t) {
           (last as any)[d.nodeId] = v;
-        } else {
+        } else if (t > last.t) {
           const point: RealtimePoint = { t } as any;
           // carry forward previous values to keep continuity for other series
-          if (last) {
-            for (const k of Object.keys(last)) {
-              if (k !== 't') (point as any)[k] = (last as any)[k];
-            }
+          for (const k of Object.keys(last)) {
+            if (k !== 't') (point as any)[k] = (last as any)[k];
           }
           (point as any)[d.nodeId] = v;
           next = [...next, point];
+        } else {
+          // Historical or out-of-order data: insert in sorted position by t
+          // Binary search for insertion index
+          let lo = 0, hi = next.length - 1, idx = next.length; // default to end
+          while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            const mt = next[mid].t;
+            if (mt === t) { idx = mid; break; }
+            if (mt < t) lo = mid + 1; else hi = mid - 1;
+          }
+          if (idx === next.length) idx = lo; // insertion point if not exact
+
+          if (next[idx] && next[idx].t === t) {
+            // Update existing bucket at time t
+            (next[idx] as any)[d.nodeId] = v;
+            // Propagate forward until the next explicit change boundary
+            for (let i = idx + 1; i < next.length; i++) {
+              const prevVal = (next[i - 1] as any)[d.nodeId];
+              const currVal = (next[i] as any)[d.nodeId];
+              if (currVal !== prevVal) break; // stop at next change boundary
+              (next[i] as any)[d.nodeId] = v;
+            }
+          } else {
+            // Create a new point, carry forward from previous index if exists
+            const point: RealtimePoint = { t } as any;
+            const prev = next[idx - 1];
+            if (prev) {
+              for (const k of Object.keys(prev)) {
+                if (k !== 't') (point as any)[k] = (prev as any)[k];
+              }
+            }
+            (point as any)[d.nodeId] = v;
+            next = [...next.slice(0, idx), point, ...next.slice(idx)];
+            // Propagate forward until the next explicit change boundary
+            for (let i = idx + 1; i < next.length; i++) {
+              const prevVal = (next[i - 1] as any)[d.nodeId];
+              const currVal = (next[i] as any)[d.nodeId];
+              if (currVal !== prevVal) break; // stop at next change boundary
+              (next[i] as any)[d.nodeId] = v;
+            }
+          }
         }
-  // Keep a fixed-size retention buffer (separate from visible window)
-  next = next.slice(-RETENTION_POINTS);
+
+        // Keep a fixed-size retention buffer (separate from visible window)
+        if (next.length > RETENTION_POINTS) {
+          next = next.slice(next.length - RETENTION_POINTS);
+        }
         set({ chartData: next });
       });
 
@@ -170,9 +218,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
     setNodeFilter(v: string) { set({ nodeFilter: v }); },
     addChart() {
-  const id = `chart-${Date.now()}`;
-  set((state: AppState) => ({ charts: [{ id, title: `Chart ${state.charts.length + 1}`, series: [], xRangeMinutes: 15, yMin: 'auto', yMax: 'auto', paused: false }, ...state.charts] }));
-  (get().actions as any)._persistCharts();
+      const id = `chart-${Date.now()}`;
+      set((state: AppState) => ({
+        charts: [
+          {
+            id,
+            title: `Chart ${state.charts.length + 1}`,
+            series: [],
+            xRangeMinutes: 15,
+            yMin: 'auto',
+            yMax: 'auto',
+            paused: true,
+            xRight: Date.now()
+          },
+          ...state.charts
+        ]
+      }));
+      (get().actions as any)._persistCharts();
     },
     removeChart(id: string) {
   set((state: AppState) => ({ charts: state.charts.filter((c: ChartConfig) => c.id !== id) }));
@@ -232,7 +294,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       (get().actions as any)._persistCharts();
     },
     setYScale(chartId: string, yMin?: number | 'auto', yMax?: number | 'auto') {
-      set((state: AppState) => ({ charts: state.charts.map((c: ChartConfig) => c.id === chartId ? { ...c, yMin, yMax } : c) }));
+      set((state: AppState) => ({
+        charts: state.charts.map((c: ChartConfig) => {
+          if (c.id !== chartId) return c;
+          const patch: Partial<ChartConfig> = {};
+          if (yMin !== undefined) patch.yMin = yMin;
+          if (yMax !== undefined) patch.yMax = yMax;
+          return { ...c, ...patch } as ChartConfig;
+        })
+      }));
       (get().actions as any)._persistCharts();
     },
     setXRangeMinutes(chartId: string, minutes: number) {

@@ -2,6 +2,12 @@
 
 Electron app to browse OPC UA servers and trend live variables in real time. Built with Electron (main/preload) and React 18 + Vite + TypeScript (renderer). Supports both simulation and real servers.
 
+## TLDR;
+- Download zip
+- Open repo with powershell
+- Execute: npm run deply
+- Run .exe in release folder
+
 ## Features
 - Server management: save/select servers; connect/disconnect; Anonymous or Username/Password.
 - Security: choose MessageSecurityMode and SecurityPolicy; dev-friendly auto-accept of unknown server certs.

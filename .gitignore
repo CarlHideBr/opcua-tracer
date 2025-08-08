@@ -31,3 +31,7 @@ pki/
 
 # Documentation (ignore repo-level docs folder)
 /docs/
+
+# Exports & traces (avoid committing local data dumps)
+*.csv
+/traces/

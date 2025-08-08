@@ -3,17 +3,15 @@
 Electron app to browse OPC UA servers and trend live variables in real time. Built with Electron (main/preload) and React 18 + Vite + TypeScript (renderer). Supports both simulation and real servers.
 
 ## TLDR;
+- <img width="1293" height="491" alt="image" src="https://github.com/user-attachments/assets/43a97387-9501-45ba-b1cb-1b9715b8723a" />
 - Download zip
+- Launch .exe
+- ignore windows warnings
+- **OR **
 - Open repo with PowerShell
 - Run: `npm install`
 - Build: `npm run deploy`
 - Start the app by launching the standalone EXE in `release/win-unpacked/` (no install)
-
-Download
-- Go to the GitHub Releases page for this repo and download the portable zip (extract and run the EXE inside).
-- <img width="1293" height="491" alt="image" src="https://github.com/user-attachments/assets/43a97387-9501-45ba-b1cb-1b9715b8723a" />
-
-
 
 Notes
 - If you want a custom Windows icon, replace `assets/icon.ico` with a valid multi-size .ico (48x48, 64x64, 256x256). If packaging errors occur, you can still run the `release/win-unpacked/*.exe` directly.
@@ -107,6 +105,7 @@ Notes
 
 ## License
 MIT
+
 
 
 

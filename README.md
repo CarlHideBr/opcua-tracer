@@ -7,14 +7,10 @@ Electron app to browse OPC UA servers and trend live variables in real time. Bui
 - Open repo with PowerShell
 - Run: `npm install`
 - Build: `npm run deploy`
-- Start the app either by:
-	- Running the installer in `release/`, or
-	- Launching the standalone EXE in `release/win-unpacked/` (no install)
+- Start the app by launching the standalone EXE in `release/win-unpacked/` (no install)
 
 Download
-- Go to the GitHub Releases page for this repo and download either:
-	- The Windows installer (.exe), or
-	- The portable zip (extract and run the EXE inside).
+- Go to the GitHub Releases page for this repo and download the portable zip (extract and run the EXE inside).
 
 Notes
 - If you want a custom Windows icon, replace `assets/icon.ico` with a valid multi-size .ico (48x48, 64x64, 256x256). If packaging errors occur, you can still run the `release/win-unpacked/*.exe` directly.
@@ -28,7 +24,7 @@ Notes
 - Smooth rendering: 100 ms time buckets with last-value carry-forward and a 10 Hz heartbeat.
 - Persistence: server list and per-server chart layouts via electron-store.
 - Simulation mode: test trending without a live OPC UA server.
-- Windows packaging: electron-builder (NSIS).
+- Windows packaging: electron-builder (portable only).
 
 ## Quick start
 Prerequisites: Node.js 18+ on Windows.
@@ -52,7 +48,7 @@ npm run dev:simulation
 ```
 
 ## Build & package
-Build everything and create a Windows installer (real OPC UA):
+Build everything and create a portable build (real OPC UA):
 
 ```powershell
 npm run deploy
@@ -64,15 +60,15 @@ Build with simulation compiled in:
 npm run build:simulation
 ```
 
-The installer will be in `release/`. Run it to install the app.
+The portable app will be in `release/win-unpacked/`. You can also use `release/opcua-tracer-portable.zip` if built via CI.
 
 ## Scripts
 - dev: Vite + Electron with hot reload.
 - dev:simulation: same as dev, with simulation mode.
-- build: builds UI, preload, main, then packages (Windows NSIS).
+- build: builds UI, preload, main, then packages (Windows portable).
 - build:simulation: build with `SIMULATION=true`.
 - deploy: build with `SIMULATION=false` (real OPC UA).
-- package: package using electron-builder (Windows NSIS).
+- package: package using electron-builder (Windows portable).
 - lint: eslint.
 - preview: `vite preview`.
 

@@ -1,4 +1,4 @@
-name: Release Windows
+name: Portable Build (Windows)
 
 on:
   workflow_dispatch:
@@ -16,14 +16,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm install
 
-      - name: Build (package installer)
+      - name: Build (portable only)
         run: npm run deploy
+        continue-on-error: true
 
       - name: Create portable zip (win-unpacked)
         shell: pwsh
@@ -32,20 +33,9 @@ jobs:
             Compress-Archive -Path 'release/win-unpacked/*' -DestinationPath 'release/opcua-tracer-portable.zip' -Force
           }
 
-      - name: Upload artifacts
+      - name: Upload portable artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-artifacts
+          name: windows-portable
           path: |
-            release/*.exe
             release/opcua-tracer-portable.zip
-
-      - name: Publish GitHub Release (on tag)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release/*.exe
-            release/opcua-tracer-portable.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

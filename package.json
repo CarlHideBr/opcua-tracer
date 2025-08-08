@@ -7,18 +7,22 @@
   "author": "",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
   "dev": "cross-env VITE_MODE=dev ELECTRON_START_URL=http://localhost:5173 concurrently -k \"vite\" \"tsup src/preload/index.ts --format cjs --out-dir dist/preload --external electron --watch\" \"tsup src/main/index.ts --format esm --out-dir dist/main --external electron --watch\" \"wait-on tcp:5173 && electron .\"",
   "dev:simulation": "cross-env SIMULATION=true VITE_MODE=dev ELECTRON_START_URL=http://localhost:5173 concurrently -k \"vite\" \"tsup src/preload/index.ts --format cjs --out-dir dist/preload --external electron --watch\" \"tsup src/main/index.ts --format esm --out-dir dist/main --external electron --watch\" \"wait-on tcp:5173 && electron .\"",
     "build:ui": "vite build",
   "build:main": "tsup src/main/index.ts --format esm --out-dir dist/main --external electron",
   "build:preload": "tsup src/preload/index.ts --format cjs --out-dir dist/preload --external electron",
-    "build": "npm run build:ui && npm run build:preload && npm run build:main && electron-builder -w nsis",
+  "build": "npm run build:ui && npm run build:preload && npm run build:main && electron-builder -w dir --publish=never",
     "build:simulation": "cross-env SIMULATION=true npm run build",
-    "package": "electron-builder -w nsis",
+  "package": "electron-builder -w dir --publish=never",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "cross-env SIMULATION=false npm run build"
+  "deploy": "cross-env SIMULATION=false npm run build",
+  "zip:portable": "powershell -NoProfile -Command \"if (Test-Path 'release/win-unpacked') { Compress-Archive -Path 'release/win-unpacked/*' -DestinationPath 'release/opcua-tracer-portable.zip' -Force } else { Write-Error 'win-unpacked not found. Run npm run deploy first.' }\""
   },
   "build": {
     "appId": "com.example.opcuatracer",
@@ -36,8 +40,11 @@
       "main": "dist/main/index.js"
     },
     "asar": true,
+    "publish": "never",
     "win": {
-  "target": ["nsis"]
+      "target": [
+        "dir"
+      ]
     },
     "nsis": {
       "oneClick": false,

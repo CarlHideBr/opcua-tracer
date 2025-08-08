@@ -39,3 +39,14 @@ jobs:
           name: windows-portable
           path: |
             release/opcua-tracer-portable.zip
+
+      - name: Publish GitHub Release with portable asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/opcua-tracer-portable.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

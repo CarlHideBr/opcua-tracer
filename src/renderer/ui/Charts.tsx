@@ -30,6 +30,8 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
   const pauseChart = useAppStore(s => s.actions.pauseChart);
   const setYScale = useAppStore(s => s.actions.setYScale);
   const setXRangeMinutes = useAppStore(s => s.actions.setXRangeMinutes);
+  const setXRangeSeconds = useAppStore(s => s.actions.setXRangeSeconds);
+  const setXUnit = useAppStore(s => s.actions.setXUnit);
   const setZoom = useAppStore(s => s.actions.setZoom);
   const panChart = useAppStore(s => s.actions.panChart);
 
@@ -84,9 +86,12 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
   // Compute x-axis domain and visible data based on live/paused/zoom
   const { domain, visible } = useMemo(() => {
     const now = Date.now();
-    const windowMin = (chart?.xRangeMinutes ?? 15) * 60 * 1000;
+    const useSeconds = chart?.xUnit === 'seconds';
+    const windowMs = useSeconds
+      ? ((chart?.xRangeSeconds ?? 30) * 1000)
+      : ((chart?.xRangeMinutes ?? 15) * 60 * 1000);
     const right = chart?.paused ? (chart?.xRight ?? now) : now;
-    const baseFrom = right - windowMin;
+    const baseFrom = right - windowMs;
     const from = chart?.xZoom ? chart.xZoom[0] : baseFrom;
     const to = chart?.xZoom ? chart.xZoom[1] : right;
     const vis = data.filter(d => d.t >= from && d.t <= to);
@@ -139,9 +144,21 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
       </div>
       {showCfg && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginTop: 8 }}>
-          <label style={{ fontSize: 12 }}>Window (min)
-            <input className="input" type="number" min={1} max={720} value={chart?.xRangeMinutes ?? 15} onChange={(e) => setXRangeMinutes(id, Number(e.target.value))} />
+          <label style={{ fontSize: 12 }}>X unit
+            <select className="input" value={chart?.xUnit || 'minutes'} onChange={(e) => setXUnit(id, e.target.value as any)}>
+              <option value="seconds">seconds</option>
+              <option value="minutes">minutes</option>
+            </select>
           </label>
+          { (chart?.xUnit || 'minutes') === 'seconds' ? (
+            <label style={{ fontSize: 12 }}>Window (sec)
+              <input className="input" type="number" min={5} max={3600} value={chart?.xRangeSeconds ?? 30} onChange={(e) => setXRangeSeconds(id, Number(e.target.value))} />
+            </label>
+          ) : (
+            <label style={{ fontSize: 12 }}>Window (min)
+              <input className="input" type="number" min={1} max={720} value={chart?.xRangeMinutes ?? 15} onChange={(e) => setXRangeMinutes(id, Number(e.target.value))} />
+            </label>
+          )}
           <label style={{ fontSize: 12 }}>Y min
             <input className="input" type="number" placeholder="auto" onChange={(e) => setYScale(id, e.target.value === '' ? 'auto' : Number(e.target.value), undefined)} />
           </label>
@@ -161,7 +178,7 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
             <XAxis type="number" dataKey="t" domain={domain as any} tickFormatter={(t) => new Date(t).toLocaleTimeString()} stroke="#9ca3af" />
             <YAxis domain={[yMin ?? 'auto', yMax ?? 'auto']} stroke="#9ca3af" />
-            <Tooltip labelFormatter={(t) => new Date(Number(t)).toLocaleTimeString()} />
+            <Tooltip labelFormatter={(t) => new Date(Number(t)).toLocaleTimeString()} contentStyle={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(2px)', border: '1px solid rgba(156,163,175,0.4)', color: '#e5e7eb' }} />
             {series.filter(s => s.visible !== false).map((s, i) => (
               <Line key={s.nodeId} type="monotone" dot={false} isAnimationActive={false} dataKey={s.nodeId} name={s.label}
                     stroke={s.color || palette[i % palette.length]} />

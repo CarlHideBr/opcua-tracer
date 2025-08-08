@@ -3,7 +3,7 @@ import type { ChartConfig, ChartSeries, RealtimePoint, UaNode, SavedServer } fro
 import { api } from './ipc';
 
 const initialCharts: ChartConfig[] = [
-  { id: 'chart-1', title: 'Chart 1', series: [], xRangeMinutes: 15, yMin: 'auto', yMax: 'auto', paused: false }
+  { id: 'chart-1', title: 'Chart 1', series: [], xRangeMinutes: 15, xUnit: 'minutes', yMin: 'auto', yMax: 'auto', paused: false }
 ];
 
 type TreeNode = UaNode & { expanded?: boolean };
@@ -36,6 +36,8 @@ export type AppState = {
     pauseChart(chartId: string, paused: boolean): void;
     setYScale(chartId: string, yMin?: number | 'auto', yMax?: number | 'auto'): void;
     setXRangeMinutes(chartId: string, minutes: number): void;
+  setXRangeSeconds(chartId: string, seconds: number): void;
+  setXUnit(chartId: string, unit: 'seconds' | 'minutes'): void;
     setZoom(chartId: string, range?: [number, number]): void;
     panChart(chartId: string, deltaMs: number): void;
   };
@@ -234,7 +236,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       (get().actions as any)._persistCharts();
     },
     setXRangeMinutes(chartId: string, minutes: number) {
-      set((state: AppState) => ({ charts: state.charts.map((c: ChartConfig) => c.id === chartId ? { ...c, xRangeMinutes: minutes } : c) }));
+      set((state: AppState) => ({ charts: state.charts.map((c: ChartConfig) => c.id === chartId ? { ...c, xRangeMinutes: minutes, xUnit: c.xUnit || 'minutes' } : c) }));
+      (get().actions as any)._persistCharts();
+    },
+    setXRangeSeconds(chartId: string, seconds: number) {
+      set((state: AppState) => ({ charts: state.charts.map((c: ChartConfig) => c.id === chartId ? { ...c, xRangeSeconds: seconds, xUnit: 'seconds' } : c) }));
+      (get().actions as any)._persistCharts();
+    },
+    setXUnit(chartId: string, unit: 'seconds' | 'minutes') {
+      set((state: AppState) => ({ charts: state.charts.map((c: ChartConfig) => c.id === chartId ? { ...c, xUnit: unit } : c) }));
       (get().actions as any)._persistCharts();
     },
     setZoom(chartId: string, range?: [number, number]) {

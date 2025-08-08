@@ -40,7 +40,10 @@ export type ChartConfig = {
   id: string;
   title: string;
   series: ChartSeries[]; // up to 8
-  xRangeMinutes: number; // default window
+  // X-axis window configuration
+  xRangeMinutes: number; // default window in minutes
+  xRangeSeconds?: number; // optional window in seconds when xUnit === 'seconds'
+  xUnit?: 'seconds' | 'minutes'; // default 'minutes'
   yMin?: number | 'auto';
   yMax?: number | 'auto';
   paused?: boolean;

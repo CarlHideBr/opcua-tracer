@@ -32,7 +32,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      if (!isResizingRef.current || collapsed) return;
+  if (!isResizingRef.current) return;
       const min = 240;
       const max = 720;
       const next = Math.max(min, Math.min(max, e.clientX));
@@ -85,13 +85,15 @@ export const App: React.FC = () => {
           <div className="sidebar-content">
             <Sidebar />
           </div>
-          {!collapsed && (
-            <div
-              className="resizer"
-              title="Drag to resize"
-              onMouseDown={() => { isResizingRef.current = true; }}
-            />
-          )}
+          <div
+            className="resizer"
+            title="Drag to resize"
+            onMouseDown={() => {
+              // If collapsed, expand immediately so drag adjusts width
+              if (collapsed) setCollapsed(false);
+              isResizingRef.current = true;
+            }}
+          />
         </aside>
         <main className="main">
           <Charts />

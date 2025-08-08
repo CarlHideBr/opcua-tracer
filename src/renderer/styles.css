@@ -205,6 +205,15 @@ html, body, .main {
 .icon-button--calm { opacity: 0.9; }
 .icon-button--danger { border-color: var(--danger); color: var(--danger); }
 .icon-button--danger:hover { background: var(--danger-bg); border-color: var(--danger-hover); color: var(--danger-hover); }
+/* Active/pressed state for toggles (settings open, pause/play active) */
+.icon-button--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(59, 130, 246, 0.12);
+}
+.icon-button--active:hover {
+  background: rgba(59, 130, 246, 0.18);
+}
 
 .legend {
   display: flex;

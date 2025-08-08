@@ -26,7 +26,9 @@ export type AppState = {
     removeChart(id: string): void;
     addSeriesToActiveChart(node: UaNode): void;
     addSeriesToChart(chartId: string, node: UaNode): void;
-    toggleSeries(chartId: string, nodeId: string): void;
+  toggleSeries(chartId: string, nodeId: string): void;
+  setSeriesLabel(chartId: string, nodeId: string, label: string): void;
+  removeSeries(chartId: string, nodeId: string): void;
     saveServer(server: Omit<SavedServer, 'id'> & { id: string }): Promise<void>;
     removeServer(id: string): Promise<void>;
     setSelectedServer(id: string): void;
@@ -42,7 +44,6 @@ export type AppState = {
     panChart(chartId: string, deltaMs: number): void;
   };
 };
-
 export const useAppStore = create<AppState>((set, get) => ({
   savedServers: [],
   selectedServerId: undefined,
@@ -263,6 +264,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     toggleSeries(chartId: string, nodeId: string) {
   set((state: AppState) => ({ charts: state.charts.map((c: ChartConfig) => c.id === chartId ? { ...c, series: c.series.map((s: ChartSeries) => s.nodeId === nodeId ? { ...s, visible: s.visible === false ? true : false } : s) } : c) }));
   (get().actions as any)._persistCharts();
+    },
+    setSeriesLabel(chartId: string, nodeId: string, label: string) {
+      set((state: AppState) => ({
+        charts: state.charts.map((c: ChartConfig) => c.id === chartId
+          ? { ...c, series: c.series.map((s: ChartSeries) => s.nodeId === nodeId ? { ...s, label } : s) }
+          : c)
+      }));
+      (get().actions as any)._persistCharts();
+    },
+    removeSeries(chartId: string, nodeId: string) {
+      set((state: AppState) => ({
+        charts: state.charts.map((c: ChartConfig) => c.id === chartId
+          ? { ...c, series: c.series.filter((s: ChartSeries) => s.nodeId !== nodeId) }
+          : c)
+      }));
+      (get().actions as any)._persistCharts();
     },
     async saveServer(server) {
       const updated = await api.addServer(server);

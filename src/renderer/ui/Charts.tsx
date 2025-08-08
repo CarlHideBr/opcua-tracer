@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppStore } from './store';
 import { useDrop } from 'react-dnd';
-import { Plus, Settings, X, Pause, Play, ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Settings, X, Pause, Play, ZoomIn, ZoomOut, Download, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 const palette = ['#60a5fa','#f472b6','#34d399','#fbbf24','#a78bfa','#f87171','#22d3ee','#e5e7eb'];
 
@@ -35,6 +35,8 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
   const setZoom = useAppStore(s => s.actions.setZoom);
   const panChart = useAppStore(s => s.actions.panChart);
   const removeChart = useAppStore(s => s.actions.removeChart);
+  const setSeriesLabel = useAppStore(s => s.actions.setSeriesLabel);
+  const removeSeries = useAppStore(s => s.actions.removeSeries);
 
   const [showCfg, setShowCfg] = useState(false);
   const [{ isOver }, drop] = useDrop(() => ({
@@ -114,9 +116,9 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
           }}>{chart?.paused ? 'PAUSED' : 'LIVE'}</span>
         </div>
         <div className="card-actions">
-          <button className="icon-button" title="Settings" onClick={() => setShowCfg(v => !v)}><Settings size={16} /></button>
-          <button className="icon-button" title="Pause" onClick={() => pauseChart(id, true)}><Pause size={16} /></button>
-          <button className="icon-button" title="Resume" onClick={() => pauseChart(id, false)}><Play size={16} /></button>
+          <button className={"icon-button" + (showCfg ? " icon-button--active" : "")} title="Settings" onClick={() => setShowCfg(v => !v)}><Settings size={16} /></button>
+          <button className={"icon-button" + (chart?.paused ? " icon-button--active" : "")} title="Pause" onClick={() => pauseChart(id, true)}><Pause size={16} /></button>
+          <button className={"icon-button" + (!chart?.paused ? " icon-button--active" : "")} title="Resume" onClick={() => pauseChart(id, false)}><Play size={16} /></button>
           {chart?.paused && (
             <>
               <button className="icon-button" title="Pan left" onClick={() => {
@@ -149,7 +151,13 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
         </div>
       </div>
       {showCfg && (
-        <div className="form-row">
+        <div className="form-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+          <div className="form-row">
+            <label className="form-field" style={{ minWidth: 240 }}>Title
+              <input className="input" type="text" value={chart?.title || ''} onChange={(e) => setChartConfig(id, { title: e.target.value })} />
+            </label>
+          </div>
+          <div className="form-row">
           <label className="form-field">X unit
             <select className="input" value={chart?.xUnit || 'minutes'} onChange={(e) => setXUnit(id, e.target.value as any)}>
               <option value="seconds">seconds</option>
@@ -191,6 +199,27 @@ const ChartCard: React.FC<{ id: string; title: string; yMin?: number | 'auto'; y
           </label>
           <div style={{ alignSelf: 'flex-end' }}>
             <button className="icon-button" title="Reset zoom" onClick={() => setZoom(id, undefined)}><ZoomIn size={16} /></button>
+          </div>
+          </div>
+
+          <div style={{ marginTop: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Series</div>
+            <ul className="list" style={{ display: 'grid', gap: 6 }}>
+              {series.map((s, i) => (
+                <li key={s.nodeId} className="list-item" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="legend-swatch" style={{ background: s.color || palette[i % palette.length] }} />
+                  <input
+                    className="input"
+                    style={{ flex: 1, minWidth: 180 }}
+                    value={s.label}
+                    onChange={(e) => setSeriesLabel(id, s.nodeId, e.target.value)}
+                  />
+                  <button className="icon-button icon-button--danger" title="Remove series" onClick={() => removeSeries(id, s.nodeId)}>
+                    <Trash2 size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}

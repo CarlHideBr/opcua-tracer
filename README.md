@@ -4,9 +4,20 @@ Electron app to browse OPC UA servers and trend live variables in real time. Bui
 
 ## TLDR;
 - Download zip
-- Open repo with powershell
-- Execute: npm run deploy
-- Run .exe in release folder
+- Open repo with PowerShell
+- Run: `npm install`
+- Build: `npm run deploy`
+- Start the app either by:
+	- Running the installer in `release/`, or
+	- Launching the standalone EXE in `release/win-unpacked/` (no install)
+
+Download
+- Go to the GitHub Releases page for this repo and download either:
+	- The Windows installer (.exe), or
+	- The portable zip (extract and run the EXE inside).
+
+Notes
+- If you want a custom Windows icon, replace `assets/icon.ico` with a valid multi-size .ico (48x48, 64x64, 256x256). If packaging errors occur, you can still run the `release/win-unpacked/*.exe` directly.
 
 ## Features
 - Server management: save/select servers; connect/disconnect; Anonymous or Username/Password.

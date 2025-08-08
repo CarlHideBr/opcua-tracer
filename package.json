@@ -24,7 +24,7 @@
     "appId": "com.example.opcuatracer",
     "productName": "OPC UA Tracer",
     "directories": {
-      "buildResources": "assets",
+  "buildResources": "buildResources",
       "output": "release"
     },
     "files": [
@@ -37,8 +37,7 @@
     },
     "asar": true,
     "win": {
-      "target": ["nsis"],
-      "icon": "assets/icon.ico"
+  "target": ["nsis"]
     },
     "nsis": {
       "oneClick": false,

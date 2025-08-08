@@ -21,3 +21,4 @@ Notes
 - Up to 8 series per chart, 1 Hz.
 - Drag to chart via add buttons (simple MVP); can extend to DnD later.
 # opcua-tracer
+# opcua-tracer

@@ -33,5 +33,13 @@ export const api = (w.api ?? fallbackApi) as {
   removeServer(id: string): Promise<any>;
   getCharts(serverId?: string): Promise<any>;
   saveCharts(serverId: string, charts: any): Promise<any>;
+  // Workspaces
+  wsList(): Promise<any>;
+  wsUpsert(ws: any): Promise<any>;
+  wsRemove(id: string): Promise<any>;
+  wsGetCharts(id?: string): Promise<any>;
+  wsSaveCharts(id: string, charts: any): Promise<any>;
+  wsExport(includeCharts?: boolean): Promise<any>;
+  wsImport(bundle: any, merge?: boolean): Promise<any>;
   onData(cb: (d: any) => void): void;
 };

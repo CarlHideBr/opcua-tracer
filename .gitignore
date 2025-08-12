@@ -35,3 +35,4 @@ pki/
 # Exports & traces (avoid committing local data dumps)
 *.csv
 /traces/
+opc-ua-tracer.code-workspace

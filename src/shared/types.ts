@@ -18,6 +18,27 @@ export type SavedServer = {
     | 'Aes256_Sha256_RsaPss';
 };
 
+// New unified workspace concept (extensible for multiple interfaces)
+export type Workspace = {
+  id: string; // unique id
+  name: string; // display name
+  interface: 'opcua'; // future: 'modbus' | 'mqtt' | ...
+  // OPC UA specific config
+  endpointUrl: string;
+  authMode?: 'anonymous' | 'username';
+  username?: string;
+  password?: string; // persisted only if rememberPassword is true
+  rememberPassword?: boolean;
+  securityMode?: 'None' | 'Sign' | 'SignAndEncrypt';
+  securityPolicy?:
+    | 'None'
+    | 'Basic128Rsa15'
+    | 'Basic256'
+    | 'Basic256Sha256'
+    | 'Aes128_Sha256_RsaOaep'
+    | 'Aes256_Sha256_RsaPss';
+};
+
 export type UaNode = {
   nodeId: string;
   browseName: string;
@@ -79,4 +100,12 @@ export type ConnectRequest = {
 export type WriteRequest = {
   nodeId: string;
   value: any;
+};
+
+// Export/import bundle to move workspaces (and optionally their charts)
+export type WorkspaceExportBundle = {
+  version: 1;
+  exportedAt: string; // ISO date
+  workspaces: Workspace[];
+  chartsByWorkspace?: Record<string, ChartConfig[]>;
 };

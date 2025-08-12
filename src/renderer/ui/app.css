@@ -1,0 +1,58 @@
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conn-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 6px;
+}
+
+.notifications-container {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.notification-card {
+  min-width: 320px;
+}
+
+.notification-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+/* Shared form/layout helpers */
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Generic list row alignment */
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}

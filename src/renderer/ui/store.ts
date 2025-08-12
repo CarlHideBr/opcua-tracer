@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ChartConfig, ChartSeries, RealtimePoint, UaNode, SavedServer } from '../../shared/types';
+import type { ChartConfig, ChartSeries, RealtimePoint, UaNode, Workspace } from '../../shared/types';
 import { api } from './ipc';
 
 const initialCharts: ChartConfig[] = [
@@ -9,16 +9,25 @@ const initialCharts: ChartConfig[] = [
 type TreeNode = UaNode & { expanded?: boolean };
 
 export type AppState = {
-  savedServers: SavedServer[];
-  selectedServerId?: string;
+  workspaces: Workspace[];
+  selectedWorkspaceId?: string;
+  connectedWorkspaceId?: string;
   nodes: TreeNode[];
   nodeFilter: string;
   charts: ChartConfig[];
   chartData: RealtimePoint[];
   connection: { connected: boolean };
+  notifications: {
+    id: string;
+    type: 'info' | 'warning' | 'error' | 'success';
+    message: string;
+    actions?: { label: string; onClick: () => void; variant?: 'primary' | 'danger' | 'neutral' }[];
+  }[];
   actions: {
+  _persistCharts(): void;
     connect(): Promise<void>;
     disconnect(): Promise<void>;
+    closeWorkspace(): Promise<void>;
     refreshBrowse(): Promise<void>;
     toggleNode(nodeId: string): Promise<void>;
     setNodeFilter(v: string): void;
@@ -29,10 +38,14 @@ export type AppState = {
   toggleSeries(chartId: string, nodeId: string): void;
   setSeriesLabel(chartId: string, nodeId: string, label: string): void;
   removeSeries(chartId: string, nodeId: string): void;
-    saveServer(server: Omit<SavedServer, 'id'> & { id: string }): Promise<void>;
-    removeServer(id: string): Promise<void>;
-    setSelectedServer(id: string): void;
+    upsertWorkspace(ws: Workspace): Promise<void>;
+    removeWorkspace(id: string): Promise<void>;
+    setSelectedWorkspace(id?: string): Promise<void>;
     loadFromStore(): Promise<void>;
+    exportWorkspaces(includeCharts?: boolean): Promise<void>;
+    importWorkspaces(file: File, merge?: boolean): Promise<void>;
+  exportWorkspace(id: string): Promise<void>;
+  importWorkspace(id: string, file?: File): Promise<void>;
     setChartConfig(chartId: string, patch: Partial<ChartConfig>): void;
     toggleChartConfig(chartId: string): void;
     pauseChart(chartId: string, paused: boolean): void;
@@ -42,30 +55,35 @@ export type AppState = {
   setXUnit(chartId: string, unit: 'seconds' | 'minutes'): void;
     setZoom(chartId: string, range?: [number, number]): void;
     panChart(chartId: string, deltaMs: number): void;
+  notify(message: string, type?: 'info' | 'warning' | 'error' | 'success'): void;
+  confirm(opts: { message: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; type?: 'info' | 'warning' | 'error' | 'success' }): Promise<boolean>;
+    removeNotification(id: string): void;
   };
 };
 export const useAppStore = create<AppState>((set, get) => ({
-  savedServers: [],
-  selectedServerId: undefined,
+  workspaces: [],
+  selectedWorkspaceId: undefined,
+  connectedWorkspaceId: undefined,
   nodes: [],
   nodeFilter: '',
   charts: initialCharts,
   chartData: [],
   connection: { connected: false },
+  notifications: [],
   actions: {
     // internal helper to persist charts per server
     _persistCharts() {
       const state = get();
-      const serverId = state.selectedServerId || '__default__';
+      const workspaceId = state.selectedWorkspaceId || '__default__';
       const charts = state.charts;
       // fire and forget
-      (api.saveCharts as any)(serverId, charts).catch(() => {});
+      (api.wsSaveCharts as any)(workspaceId, charts).catch(() => {});
     },
     async connect() {
-      const servers: SavedServer[] = await api.listServers();
-      const { selectedServerId } = get();
-      const chosen = servers.find(s => s.id === selectedServerId) || servers[0];
-      if (!chosen) throw new Error('No saved servers. Save one in the sidebar.');
+      const wss: Workspace[] = await api.wsList();
+      const { selectedWorkspaceId } = get();
+      const chosen = wss.find(w => w.id === selectedWorkspaceId) || wss[0];
+      if (!chosen) throw new Error('No workspaces. Create one with the + button.');
       try {
         await api.connect({
           endpointUrl: chosen.endpointUrl,
@@ -76,13 +94,13 @@ export const useAppStore = create<AppState>((set, get) => ({
           securityPolicy: chosen.securityPolicy || 'None'
         });
       } catch (e: any) {
-        alert(`Connection failed: ${e?.message || e}`);
+  get().actions.notify(`Connection failed: ${e?.message || e}`, 'error');
         throw e;
       }
-      set({ connection: { connected: true } });
-      // load charts per server
+  set({ connection: { connected: true }, connectedWorkspaceId: chosen.id });
+      // load charts for workspace
       try {
-        const savedCharts = await api.getCharts(chosen.id);
+        const savedCharts = await api.wsGetCharts(chosen.id);
         if (savedCharts?.length) set({ charts: savedCharts });
       } catch {}
       await get().actions.refreshBrowse();
@@ -187,7 +205,16 @@ export const useAppStore = create<AppState>((set, get) => ({
     },
     async disconnect() {
       await api.disconnect();
-      set({ connection: { connected: false } });
+  set({ connection: { connected: false }, connectedWorkspaceId: undefined });
+    },
+    async closeWorkspace() {
+      const { selectedWorkspaceId, charts } = get();
+      if (selectedWorkspaceId) {
+        try { await api.wsSaveCharts(selectedWorkspaceId, charts); } catch {}
+      }
+      // Clear UI state for charts/nodes/data
+  set({ charts: initialCharts, nodes: [], chartData: [], connection: { connected: false }, connectedWorkspaceId: undefined });
+      try { await api.disconnect(); } catch {}
     },
     async refreshBrowse() {
       const tree = await api.browseRoot();
@@ -281,21 +308,111 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
       (get().actions as any)._persistCharts();
     },
-    async saveServer(server) {
-      const updated = await api.addServer(server);
-      set({ savedServers: updated });
+    async upsertWorkspace(ws: Workspace) {
+      const updated = await api.wsUpsert(ws);
+      set({ workspaces: updated });
     },
-    async removeServer(id: string) {
-      const updated = await api.removeServer(id);
-      const { selectedServerId } = get();
-      const nextSelected = selectedServerId && selectedServerId === id ? undefined : selectedServerId;
-      set({ savedServers: updated, selectedServerId: nextSelected });
+    async removeWorkspace(id: string) {
+      const updated = await api.wsRemove(id);
+      const { selectedWorkspaceId, connectedWorkspaceId } = get();
+      const nextSelected = selectedWorkspaceId && selectedWorkspaceId === id ? undefined : selectedWorkspaceId;
+      const disconnectConnected = connectedWorkspaceId && connectedWorkspaceId === id;
+      set({
+        workspaces: updated,
+        selectedWorkspaceId: nextSelected,
+        connection: disconnectConnected ? { connected: false } : get().connection,
+        connectedWorkspaceId: disconnectConnected ? undefined : connectedWorkspaceId
+      });
+      if (!nextSelected) {
+        // clear charts if the active workspace was removed
+        set({ charts: initialCharts, nodes: [], chartData: [], connection: { connected: false }, connectedWorkspaceId: undefined });
+      }
     },
-    setSelectedServer(id: string) { set({ selectedServerId: id }); },
+    async setSelectedWorkspace(id?: string) {
+      set({ selectedWorkspaceId: id });
+      // load charts for selected workspace
+      try {
+        const charts = await api.wsGetCharts(id);
+        if (charts) set({ charts });
+      } catch {}
+    },
     async loadFromStore() {
-      const [servers, savedCharts] = await Promise.all([api.listServers(), api.getCharts()]);
-      set({ savedServers: servers });
+      try { await (api as any).wsMigrateLegacy?.(); } catch {}
+      const [wss, savedCharts] = await Promise.all([api.wsList(), api.wsGetCharts()]);
+      set({ workspaces: wss });
       if (savedCharts?.length) set({ charts: savedCharts });
+    },
+    async exportWorkspaces(includeCharts = true) {
+      const bundle = await api.wsExport(includeCharts);
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `opcua-tracer-workspaces-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+      a.click();
+    },
+    async importWorkspaces(file: File, merge = true) {
+      const text = await file.text();
+      const bundle = JSON.parse(text);
+      const updated = await api.wsImport(bundle, merge);
+      set({ workspaces: updated });
+    },
+    async exportWorkspace(id: string) {
+      const bundle = await api.wsExport(true);
+      const one = {
+        ...bundle,
+        workspaces: bundle.workspaces.filter((w: Workspace) => w.id === id),
+        chartsByWorkspace: bundle.chartsByWorkspace ? { [id]: bundle.chartsByWorkspace[id] || [] } : undefined,
+      };
+      if (!one.workspaces || one.workspaces.length === 0) {
+        get().actions.notify(`Workspace not found for export`, 'error');
+        return;
+      }
+      const name = one.workspaces[0].name?.replace(/\W+/g, '-').toLowerCase() || 'workspace';
+      const blob = new Blob([JSON.stringify(one, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `opcua-tracer-${name}-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+      a.click();
+    },
+    async importWorkspace(id: string, file?: File) {
+      try {
+        let text: string;
+        if (!file) {
+          const [handle] = await (window as any).showOpenFilePicker?.({
+            types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+          }) || [];
+          if (!handle) return;
+          const f = await handle.getFile();
+          text = await f.text();
+        } else {
+          text = await file.text();
+        }
+        const raw = JSON.parse(text);
+        let bundle = raw && raw.workspaces ? raw : { workspaces: [raw], chartsByWorkspace: raw.chartsByWorkspace };
+        // If multiple, filter to target id
+        if (bundle.workspaces.length > 1) {
+          bundle = {
+            ...bundle,
+            workspaces: bundle.workspaces.filter((w: Workspace) => w.id === id)
+          };
+        }
+        if (bundle.workspaces.length === 0) {
+          get().actions.notify('Import file has no matching workspace', 'error');
+          return;
+        }
+        // Normalize id to target
+        const oldId = bundle.workspaces[0].id;
+        bundle.workspaces[0].id = id;
+        if (bundle.chartsByWorkspace && oldId && oldId !== id) {
+          bundle.chartsByWorkspace[id] = bundle.chartsByWorkspace[oldId] || [];
+          delete bundle.chartsByWorkspace[oldId];
+        }
+        const updated = await api.wsImport(bundle, true);
+        set({ workspaces: updated });
+        get().actions.notify('Workspace imported', 'success');
+      } catch (e: any) {
+        get().actions.notify(`Import failed: ${e?.message || e}`, 'error');
+      }
     },
     setChartConfig(chartId: string, patch: Partial<ChartConfig>) {
       set((state: AppState) => ({ charts: state.charts.map((c: ChartConfig) => c.id === chartId ? { ...c, ...patch } : c) }));
@@ -350,6 +467,42 @@ export const useAppStore = create<AppState>((set, get) => ({
         })
       }));
       (get().actions as any)._persistCharts();
+    },
+    notify(message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info') {
+      const id = `n-${Date.now()}-${Math.floor(Math.random()*1e6)}`;
+      set((state) => ({ notifications: [...state.notifications, { id, type, message }] }));
+      if (type !== 'error') {
+        setTimeout(() => {
+          const { notifications } = get();
+          set({ notifications: notifications.filter(n => n.id !== id) });
+        }, 5000);
+      }
+    },
+    async confirm(opts: { message: string; confirmLabel?: string; cancelLabel?: string; destructive?: boolean; type?: 'info' | 'warning' | 'error' | 'success' }): Promise<boolean> {
+      return new Promise<boolean>((resolve) => {
+        const id = `n-${Date.now()}-${Math.floor(Math.random()*1e6)}`;
+        const close = () => set((state) => ({ notifications: state.notifications.filter(n => n.id !== id) }));
+        const onConfirm = () => { close(); resolve(true); };
+        const onCancel = () => { close(); resolve(false); };
+        const type: 'info' | 'warning' | 'error' | 'success' = opts.type ?? (opts.destructive ? 'warning' : 'info');
+        set((state) => ({
+          notifications: [
+            ...state.notifications,
+            {
+              id,
+              type,
+              message: opts.message,
+              actions: [
+                { label: opts.cancelLabel || 'Cancel', onClick: onCancel, variant: 'neutral' },
+                { label: opts.confirmLabel || 'Confirm', onClick: onConfirm, variant: opts.destructive ? 'danger' : 'primary' }
+              ]
+            }
+          ]
+        }));
+      });
+    },
+    removeNotification(id: string) {
+      set((state) => ({ notifications: state.notifications.filter(n => n.id !== id) }));
     }
   }
 }));

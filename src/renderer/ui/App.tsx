@@ -1,13 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import './app.css';
 import { Sidebar } from './Sidebar';
 import { Charts } from './Charts';
 import { useAppStore } from './store';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { PlugZap, PowerOff, Menu, X } from 'lucide-react';
+import { Notifications } from './components/Notifications';
 
 export const App: React.FC = () => {
   const connected = useAppStore(s => s.connection.connected);
+  const notifications = useAppStore(s => s.notifications);
+  const removeNotification = useAppStore(s => s.actions.removeNotification);
   const connect = useAppStore(s => s.actions.connect);
   const disconnect = useAppStore(s => s.actions.disconnect);
   const loadFromStore = useAppStore(s => s.actions.loadFromStore);
@@ -55,17 +59,9 @@ export const App: React.FC = () => {
     <DndProvider backend={HTML5Backend}>
       <div className={("app" + (collapsed ? " app--collapsed" : ""))} style={appStyle}>
         <header className="header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="app-header-left">
             {/* Header no longer hosts the toggle; single control lives in sidebar */}
-            <div
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 6,
-                background: connected ? '#10b981' : '#ef4444',
-              }}
-              title={connected ? 'Connected' : 'Disconnected'}
-            />
+            <div className="conn-indicator" style={{ background: connected ? '#10b981' : '#ef4444' }} title={connected ? 'Connected' : 'Disconnected'} />
             <div>OPC UA Tracer</div>
           </div>
           <div>
@@ -98,6 +94,7 @@ export const App: React.FC = () => {
         <main className="main">
           <Charts />
         </main>
+  <Notifications />
       </div>
     </DndProvider>
   );

@@ -75,10 +75,11 @@ The portable app will be in `release/win-unpacked/`. You can also use `release/o
 
 ## Using the app
 1. Start the app (dev or packaged).
-2. Add a server (endpoint URL, optional Username/Password). Choose SecurityPolicy and MessageSecurityMode.
-3. Connect. The tree browser loads; filter and expand nodes.
+2. Create a Workspace (+ button). Choose interface (OPC UA) and fill details (endpoint URL, auth, security mode/policy). Save.
+3. Select a workspace and Connect. The tree browser loads; filter and expand nodes.
 4. Drag supported scalar variables (Boolean and numeric) into a chart. Up to ~8 per chart.
 5. Use legend toggles, pan/zoom, pause/resume. Export to CSV when needed.
+6. Close Workspace to persist its charts and clear the view. Charts are stored per workspace.
 
 Notes
 - Trends render at ~10 Hz with continuity when values don’t change.
@@ -89,6 +90,10 @@ Notes
 - Preload: `src/preload/index.ts` (IPC bridge via contextBridge).
 - Renderer: `src/renderer/ui/App.tsx`, `Sidebar.tsx`, `Charts.tsx`, `store.ts`, `styles.css`.
 - Packaging: `package.json` (electron-builder), `assets/icon.ico`.
+
+Workspaces
+- Persisted under `workspaces` with per-workspace charts in `chartsByWorkspace`.
+- Import/export: use buttons in the Workspaces card to back up/restore.
 
 ## Security & persistence
 - Unknown OPC UA server certificates are auto-accepted in development. Consider adding a trust prompt for production.

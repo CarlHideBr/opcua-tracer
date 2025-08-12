@@ -77,3 +77,13 @@ ipcMain.handle('store:addServer', async (_e, server) => await StoreApi.addServer
 ipcMain.handle('store:removeServer', async (_e, id) => await StoreApi.removeServer(id));
 ipcMain.handle('store:getCharts', async (_e, serverId?: string) => await StoreApi.getCharts(serverId));
 ipcMain.handle('store:saveCharts', async (_e, serverId: string, charts) => await StoreApi.saveCharts(serverId, charts));
+
+// Workspaces IPC (new)
+ipcMain.handle('ws:list', async () => await StoreApi.listWorkspaces());
+ipcMain.handle('ws:upsert', async (_e, ws) => await StoreApi.upsertWorkspace(ws));
+ipcMain.handle('ws:remove', async (_e, id: string) => await StoreApi.removeWorkspace(id));
+ipcMain.handle('ws:getCharts', async (_e, id?: string) => await StoreApi.getChartsForWorkspace(id));
+ipcMain.handle('ws:saveCharts', async (_e, id: string, charts) => await StoreApi.saveChartsForWorkspace(id, charts));
+ipcMain.handle('ws:export', async (_e, includeCharts?: boolean) => await StoreApi.exportWorkspaces(includeCharts));
+ipcMain.handle('ws:import', async (_e, bundle, merge?: boolean) => await StoreApi.importWorkspaces(bundle, merge));
+ipcMain.handle('ws:migrateLegacy', async () => { await StoreApi.migrateLegacy(); return true; });
